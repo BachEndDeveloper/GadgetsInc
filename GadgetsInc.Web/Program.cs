@@ -1,5 +1,5 @@
-using ClothesInc.Web;
-using ClothesInc.Web.Components;
+using GadgetsInc.Web;
+using GadgetsInc.Web.Components;
 
 var builder = WebApplication.CreateBuilder(args);
 

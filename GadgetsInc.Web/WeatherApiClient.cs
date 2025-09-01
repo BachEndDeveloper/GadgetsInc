@@ -1,4 +1,4 @@
-namespace ClothesInc.Web;
+namespace GadgetsInc.Web;
 
 public class WeatherApiClient(HttpClient httpClient)
 {
