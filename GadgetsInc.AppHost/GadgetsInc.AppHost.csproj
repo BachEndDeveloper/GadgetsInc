@@ -11,8 +11,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\ClothesInc.ApiService\ClothesInc.ApiService.csproj" />
-    <ProjectReference Include="..\ClothesInc.Web\ClothesInc.Web.csproj" />
+    <ProjectReference Include="..\GadgetsInc.ApiService\GadgetsInc.ApiService.csproj" />
+    <ProjectReference Include="..\GadgetsInc.Web\GadgetsInc.Web.csproj" />
   </ItemGroup>
 
   <ItemGroup>
