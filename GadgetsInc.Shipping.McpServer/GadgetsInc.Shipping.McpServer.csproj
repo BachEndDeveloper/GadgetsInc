@@ -8,7 +8,6 @@
 
     <ItemGroup>
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.8"/>
-        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.8"/>
         <PackageReference Include="Microsoft.SemanticKernel" Version="1.64.0" />
         <PackageReference Include="Microsoft.SemanticKernel.Connectors.Ollama" Version="1.64.0-alpha"/>
         <PackageReference Include="ModelContextProtocol-SemanticKernel" Version="0.3.0" />
