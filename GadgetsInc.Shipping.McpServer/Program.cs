@@ -1,8 +1,19 @@
+using GadgetsInc.Shipping.McpServer;
+using GadgetsInc.Shipping.McpServer.Extensions;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi 
+builder.Services.AddEndpointsApiExplorer();
+
+builder.Services.AddShippingKernel();
+
+
+builder.Services
+    .AddMcpServer()
+    .WithStdioServerTransport()
+    .WithTools();
 
 var app = builder.Build();
 

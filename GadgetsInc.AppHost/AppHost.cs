@@ -6,10 +6,10 @@ var ollama = builder.AddOllama("ollama")
     .WithOpenWebUI();
 //
 // llama3.2
-// var chat = ollama.AddModel("chat", "llama3.2");
+var chat = ollama.AddModel("chat", "llama3.2");
 
 // gpt-oss model
-var chat = ollama.AddModel("chat", "gpt-oss");
+// var chat = ollama.AddModel("chat", "gpt-oss");
 
 
 

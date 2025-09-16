@@ -4,12 +4,15 @@ namespace GadgetsInc.Shipping.McpServer;
 
 public static class SemanticKernelSetup
 {
-    public static IKernelBuilder AddShippingKernel(this IKernelBuilder builder)
+    public static IServiceCollection AddShippingKernel(this IServiceCollection services)
     {
-        // Add any custom plugins or configurations here
-        builder.Plugins.AddFromType<Tools.Math>();
+        var kernelBuilder = services.AddKernel();
 
-        return builder;
+        
+        // Add any custom plugins or configurations here
+        kernelBuilder.Plugins.AddFromType<Tools.Math>();
+
+        return services;
     }
     
 }
