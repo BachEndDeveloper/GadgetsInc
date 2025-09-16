@@ -14,11 +14,15 @@ public class ChatApiClient
 
     public async Task<string> SendMessageAsync(string message)
     {
+        var httpClient = new HttpClient
+        {
+            BaseAddress = new Uri("http://localhost:5303") // Adjust the base address as needed
+        };
         var request = new { Message = message };
         var json = JsonSerializer.Serialize(request);
         var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-        var response = await _httpClient.PostAsync("/chat/simple", content);
+        
+        var response = await httpClient.PostAsync("/chat/simple", content);
         response.EnsureSuccessStatusCode();
 
         var responseJson = await response.Content.ReadAsStringAsync();

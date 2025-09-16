@@ -3,6 +3,7 @@ using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,8 +25,8 @@ builder.Services.AddCors(options =>
     options.AddDefaultPolicy(builder =>
     {
         builder.AllowAnyOrigin()
-               .AllowAnyMethod()
-               .AllowAnyHeader();
+            .AllowAnyMethod()
+            .AllowAnyHeader();
     });
 });
 
@@ -40,93 +41,108 @@ app.UseCors();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.MapScalarApiReference();
 }
 
 // Chat endpoint with streaming response
 app.MapPost("/chat", async (ChatRequest request, Kernel kernel) =>
-{
-    var chatService = kernel.GetRequiredService<IChatCompletionService>();
-    
-    // Create system prompt
-    var systemPrompt = """
-        You are a helpful customer service assistant for GadgetsInc, a technology company that sells smartphones, laptops, smartwatches, headphones, and tablets.
-        
-        You can help customers with:
-        - Product information and recommendations
-        - Order tracking and shipping information  
-        - Customer support and warranty questions
-        - Technical support and troubleshooting
-        
-        Always be polite, helpful, and professional. Use the available functions to provide accurate information.
-        If you don't have specific information, direct customers to contact support at 1-800-GADGETS.
-        """;
-
-    // Build chat history
-    var chatHistory = new ChatHistory(systemPrompt);
-    
-    // Add conversation history
-    foreach (var message in request.Messages)
     {
-        if (message.Role == "user")
-            chatHistory.AddUserMessage(message.Content);
-        else if (message.Role == "assistant")
-            chatHistory.AddAssistantMessage(message.Content);
-    }
+        var chatService = kernel.GetRequiredService<IChatCompletionService>();
 
-    // Create the streaming response
-    return Results.Stream(async (stream) =>
-    {
-        try
+        // Create system prompt
+        var systemPrompt = """
+                           You are a helpful customer service assistant for GadgetsInc, a technology company that sells smartphones, laptops, smartwatches, headphones, and tablets.
+
+                           You can help customers with:
+                           - Product information and recommendations
+                           - Order tracking and shipping information  
+                           - Customer support and warranty questions
+                           - Technical support and troubleshooting
+
+                           Always be polite, helpful, and professional. Use the available functions to provide accurate information.
+                           If you don't have specific information, direct customers to contact support at 1-800-GADGETS.
+                           """;
+
+        // Build chat history
+        var chatHistory = new ChatHistory(systemPrompt);
+
+        // Add conversation history
+        foreach (var message in request.Messages)
         {
-            var response = chatService.GetStreamingChatMessageContentsAsync(
-                chatHistory,
-                kernel: kernel);
+            if (message.Role == "user")
+                chatHistory.AddUserMessage(message.Content);
+            else if (message.Role == "assistant")
+                chatHistory.AddAssistantMessage(message.Content);
+        }
 
-            await foreach (var chunk in response)
+        // Create the streaming response
+        return Results.Stream(async (stream) =>
+        {
+            try
             {
-                if (!string.IsNullOrEmpty(chunk.Content))
+                var response = chatService.GetStreamingChatMessageContentsAsync(
+                    chatHistory,
+                    kernel: kernel);
+
+                await foreach (var chunk in response)
                 {
-                    var jsonChunk = JsonSerializer.Serialize(new { content = chunk.Content });
-                    var data = $"data: {jsonChunk}\n\n";
-                    await stream.WriteAsync(System.Text.Encoding.UTF8.GetBytes(data));
-                    await stream.FlushAsync();
+                    if (!string.IsNullOrEmpty(chunk.Content))
+                    {
+                        var jsonChunk = JsonSerializer.Serialize(new { content = chunk.Content });
+                        var data = $"data: {jsonChunk}\n\n";
+                        await stream.WriteAsync(System.Text.Encoding.UTF8.GetBytes(data));
+                        await stream.FlushAsync();
+                    }
                 }
+
+                // Send completion signal
+                await stream.WriteAsync(System.Text.Encoding.UTF8.GetBytes("data: [DONE]\n\n"));
+                await stream.FlushAsync();
             }
-            
-            // Send completion signal
-            await stream.WriteAsync(System.Text.Encoding.UTF8.GetBytes("data: [DONE]\n\n"));
-            await stream.FlushAsync();
-        }
-        catch (Exception ex)
-        {
-            var errorData = JsonSerializer.Serialize(new { error = ex.Message });
-            await stream.WriteAsync(System.Text.Encoding.UTF8.GetBytes($"data: {errorData}\n\n"));
-            await stream.FlushAsync();
-        }
-    }, "text/plain; charset=utf-8");
-})
-.WithName("StreamChat")
-.WithOpenApi();
+            catch (Exception ex)
+            {
+                var errorData = JsonSerializer.Serialize(new { error = ex.Message });
+                await stream.WriteAsync(System.Text.Encoding.UTF8.GetBytes($"data: {errorData}\n\n"));
+                await stream.FlushAsync();
+            }
+        }, "text/plain; charset=utf-8");
+    })
+    .WithName("StreamChat")
+    .WithOpenApi();
 
 // Simple chat endpoint for testing
 app.MapPost("/chat/simple", async (SimpleChatRequest request, Kernel kernel) =>
-{
-    var chatService = kernel.GetRequiredService<IChatCompletionService>();
-    
-    var systemPrompt = """
-        You are a helpful customer service assistant for GadgetsInc. Be polite and helpful.
-        Use the available functions to provide accurate product and support information.
-        """;
+    {
+        var chatService = kernel.GetRequiredService<IChatCompletionService>();
 
-    var chatHistory = new ChatHistory(systemPrompt);
-    chatHistory.AddUserMessage(request.Message);
+        var systemPrompt = """
+                           You are a helpful customer service assistant for GadgetsInc, a technology company that sells smartphones, laptops, smartwatches, headphones, and tablets.
+                           
+                           You can help customers with:
+                           - Product information and recommendations
+                           - Order tracking and shipping information  
+                           - Customer support and warranty questions
+                           - Technical support and troubleshooting
+                           
+                           Always be polite, helpful, and professional. 
+                           Use the available functions to provide accurate information.
+                           Only respond with information you know to be correct and where a function is available.
+                           If you don't have specific information, direct customers to contact support at 1-800-GADGETS.
+                           """;
 
-    var response = await chatService.GetChatMessageContentAsync(chatHistory, kernel: kernel);
-    
-    return Results.Ok(new { response = response.Content });
-})
-.WithName("SimpleChat")
-.WithOpenApi();
+        var chatHistory = new ChatHistory(systemPrompt);
+        chatHistory.AddUserMessage(request.Message);
+
+        PromptExecutionSettings promptSettings = new() { FunctionChoiceBehavior = FunctionChoiceBehavior.Auto() };
+
+        var response =
+            await chatService.GetChatMessageContentAsync(chatHistory, executionSettings: promptSettings,
+                kernel: kernel);
+
+        return Results.Ok(new { response = response.Content });
+    })
+    .WithName("SimpleChat")
+    .WithOpenApi();
 
 app.MapDefaultEndpoints();
 
@@ -134,5 +150,7 @@ app.Run();
 
 // Request models
 public record ChatMessage(string Role, string Content);
+
 public record ChatRequest(List<ChatMessage> Messages);
+
 public record SimpleChatRequest(string Message);

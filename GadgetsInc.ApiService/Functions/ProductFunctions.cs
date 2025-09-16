@@ -5,7 +5,7 @@ namespace GadgetsInc.ApiService.Functions;
 
 public class ProductFunctions
 {
-    [KernelFunction, Description("Get information about GadgetsInc products. Provides details about available gadgets and their features.")]
+    [KernelFunction, Description("Get information about GadgetsInc products. Provides details about available gadgets and their features. Available products: smartphone, laptop, smartwatch, headphones, tablet.")]
     public static string GetProductInfo(string productName)
     {
         var products = new Dictionary<string, string>

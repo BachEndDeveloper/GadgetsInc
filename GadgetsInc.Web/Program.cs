@@ -24,6 +24,7 @@ builder.Services.AddHttpClient<WeatherApiClient>(client =>
 builder.Services.AddHttpClient<ChatApiClient>(client =>
     {
         client.BaseAddress = new("https+http://apiservice");
+        client.Timeout = TimeSpan.FromSeconds(60);
     });
 
 var app = builder.Build();
