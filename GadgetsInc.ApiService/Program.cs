@@ -12,9 +12,8 @@ builder.AddServiceDefaults();
 // Add services to the container.
 builder.Services.AddProblemDetails();
 
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore-swashbuckle
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+builder.Services.AddOpenApi();
 
 // Add Semantic Kernel with AI functions
 builder.Services.AddSemanticKernel(builder.Configuration);
@@ -40,8 +39,7 @@ app.UseCors();
 
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    app.MapOpenApi();
 }
 
 // Chat endpoint with streaming response
@@ -107,7 +105,8 @@ app.MapPost("/chat", async (ChatRequest request, Kernel kernel) =>
         }
     }, "text/plain; charset=utf-8");
 })
-.WithName("StreamChat");
+.WithName("StreamChat")
+.WithOpenApi();
 
 // Simple chat endpoint for testing
 app.MapPost("/chat/simple", async (SimpleChatRequest request, Kernel kernel) =>
@@ -126,7 +125,8 @@ app.MapPost("/chat/simple", async (SimpleChatRequest request, Kernel kernel) =>
     
     return Results.Ok(new { response = response.Content });
 })
-.WithName("SimpleChat");
+.WithName("SimpleChat")
+.WithOpenApi();
 
 app.MapDefaultEndpoints();
 

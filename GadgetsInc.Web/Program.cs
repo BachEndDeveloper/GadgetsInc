@@ -23,8 +23,7 @@ builder.Services.AddHttpClient<WeatherApiClient>(client =>
 // Add ChatApiClient
 builder.Services.AddHttpClient<ChatApiClient>(client =>
     {
-        // For testing, connect directly to the API service
-        client.BaseAddress = new("http://localhost:5303");
+        client.BaseAddress = new("https+http://apiservice");
     });
 
 var app = builder.Build();
@@ -42,7 +41,7 @@ app.UseAntiforgery();
 
 app.UseOutputCache();
 
-app.UseStaticFiles();
+app.MapStaticAssets();
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
