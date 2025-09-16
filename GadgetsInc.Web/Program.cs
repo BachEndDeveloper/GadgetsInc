@@ -23,7 +23,8 @@ builder.Services.AddHttpClient<WeatherApiClient>(client =>
 // Add ChatApiClient
 builder.Services.AddHttpClient<ChatApiClient>(client =>
     {
-        client.BaseAddress = new("https+http://apiservice");
+        // For testing, connect directly to the API service
+        client.BaseAddress = new("http://localhost:5303");
     });
 
 var app = builder.Build();
