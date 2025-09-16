@@ -1,5 +1,6 @@
 using GadgetsInc.Web;
 using GadgetsInc.Web.Components;
+using GadgetsInc.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,6 +17,12 @@ builder.Services.AddHttpClient<WeatherApiClient>(client =>
     {
         // This URL uses "https+http://" to indicate HTTPS is preferred over HTTP.
         // Learn more about service discovery scheme resolution at https://aka.ms/dotnet/sdschemes.
+        client.BaseAddress = new("https+http://apiservice");
+    });
+
+// Add ChatApiClient
+builder.Services.AddHttpClient<ChatApiClient>(client =>
+    {
         client.BaseAddress = new("https+http://apiservice");
     });
 
