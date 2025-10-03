@@ -335,4 +335,12 @@ See the `GadgetsInc.Shipping.McpServer` project in this repository for a complet
 - Health check endpoints
 - Clean separation of concerns
 
-This example demonstrates all the best practices outlined in this document and serves as a reference implementation for building robust MCP servers in C#/.NET.
+Additionally, see the `GadgetsInc.ProductCatalog.MCP` project for another complete implementation that demonstrates:
+
+- Product catalog management functions
+- Tag-based search capabilities  
+- Comprehensive product data modeling
+- User-friendly error messages with suggestions
+- Case-insensitive search functionality
+
+Both examples demonstrate all the best practices outlined in this document and serve as reference implementations for building robust MCP servers in C#/.NET.
