@@ -8,8 +8,10 @@ public static class SemanticKernelSetup
     {
         var kernelBuilder = services.AddKernel();
 
+        // Add shipping-specific plugins
+        kernelBuilder.Plugins.AddFromType<Tools.ShippingFunctions>();
         
-        // Add any custom plugins or configurations here
+        // Keep math functions for additional utility
         kernelBuilder.Plugins.AddFromType<Tools.Math>();
 
         return services;
