@@ -135,11 +135,20 @@ app.MapPost("/chat/simple", async (SimpleChatRequest request, Kernel kernel) =>
 
         PromptExecutionSettings promptSettings = new() { FunctionChoiceBehavior = FunctionChoiceBehavior.Auto() };
 
-        var response =
-            await chatService.GetChatMessageContentAsync(chatHistory, executionSettings: promptSettings,
-                kernel: kernel);
+        try
+        {
+            var response =
+                await chatService.GetChatMessageContentAsync(chatHistory, executionSettings: promptSettings,
+                    kernel: kernel);
+            
+            return Results.Ok(new { response = response.Content });
+        }
+        catch (Exception ex)
+        {
+            return Results.Problem(detail: ex.Message, title: "Chat Completion Error");
+        }
 
-        return Results.Ok(new { response = response.Content });
+        
     })
     .WithName("SimpleChat")
     .WithOpenApi();
