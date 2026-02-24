@@ -184,7 +184,8 @@ app.MapPost("/summary", async (IFormFile file, Kernel kernel) =>
         try
         {
             var response = await chatService.GetChatMessageContentAsync(chatHistory, kernel: kernel);
-            return Results.Ok(new { summary = response.Content });
+            var summary = response.Content ?? string.Empty;
+            return Results.Ok(new { summary });
         }
         catch (Exception ex)
         {
