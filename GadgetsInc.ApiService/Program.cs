@@ -152,9 +152,16 @@ app.MapPost("/chat/simple", async (SimpleChatRequest request, Kernel kernel) =>
     })
     .WithName("SimpleChat");
 
+const long MaxSummaryUploadSizeBytes = 10 * 1024 * 1024; // 10 MB
+
 // Summary endpoint - upload a document and get an LLM-generated summary
 app.MapPost("/summary", async (IFormFile file, Kernel kernel) =>
     {
+        if (file == null || file.Length == 0)
+            return Results.BadRequest(new { error = "No file was uploaded." });
+
+        if (file.Length > MaxSummaryUploadSizeBytes)
+            return Results.BadRequest(new { error = "The uploaded file is too large. The maximum allowed size is 10 MB." });
         string documentText;
         try
         {
