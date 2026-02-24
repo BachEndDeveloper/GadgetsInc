@@ -27,6 +27,12 @@ builder.Services.AddHttpClient<ChatApiClient>(client =>
         client.Timeout = TimeSpan.FromSeconds(60);
     });
 
+builder.Services.AddHttpClient<DocumentAnalysisApiClient>(client =>
+    {
+        client.BaseAddress = new("https+http://apiservice");
+        client.Timeout = TimeSpan.FromSeconds(60);
+    });
+
 var app = builder.Build();
 
 if (!app.Environment.IsDevelopment())

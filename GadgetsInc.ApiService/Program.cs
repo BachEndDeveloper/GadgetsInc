@@ -3,6 +3,7 @@ using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -107,8 +108,7 @@ app.MapPost("/chat", async (ChatRequest request, Kernel kernel) =>
             }
         }, "text/plain; charset=utf-8");
     })
-    .WithName("StreamChat")
-    .WithOpenApi();
+    .WithName("StreamChat");
 
 // Simple chat endpoint for testing
 app.MapPost("/chat/simple", async (SimpleChatRequest request, Kernel kernel) =>
@@ -150,8 +150,7 @@ app.MapPost("/chat/simple", async (SimpleChatRequest request, Kernel kernel) =>
 
         
     })
-    .WithName("SimpleChat")
-    .WithOpenApi();
+    .WithName("SimpleChat");
 
 // Summary endpoint - upload a document and get an LLM-generated summary
 app.MapPost("/summary", async (IFormFile file, Kernel kernel) =>
@@ -193,8 +192,7 @@ app.MapPost("/summary", async (IFormFile file, Kernel kernel) =>
         }
     })
     .WithName("SummarizeDocument")
-    .DisableAntiforgery()
-    .WithOpenApi();
+    .DisableAntiforgery();
 
 // Compliance endpoint - upload a document and get a PII/GDPR compliance check
 app.MapPost("/compliance", async (IFormFile file, Kernel kernel) =>
@@ -223,13 +221,24 @@ app.MapPost("/compliance", async (IFormFile file, Kernel kernel) =>
                            - Sensitive special-category data (health, biometric, racial/ethnic origin, political opinions, religious beliefs, trade union membership, sexual orientation).
                            - Potential GDPR violations, such as lack of consent indication, data retention issues, or cross-border transfer concerns.
 
-                           For each finding:
-                           1. Identify the type of data / issue.
-                           2. Quote or describe where in the document it appears.
-                           3. Explain the potential compliance risk.
-                           4. Suggest a remediation step.
+                           Return ONLY valid JSON matching this schema:
+                           {
+                             "summaryTable": [
+                               {
+                                 "category": "PII|GDPR",
+                                 "finding": "what was identified",
+                                 "risk": "why this is a risk",
+                                 "remediation": "recommended action"
+                               }
+                             ],
+                             "PII_Risk": true|false,
+                             "GDPR_Risk": true|false
+                           }
 
-                           If no issues are found, clearly state that the document appears compliant.
+                           Rules:
+                           - Do not include markdown, code fences, or extra commentary.
+                           - summaryTable may be empty if no issues are found.
+                           - PII_Risk and GDPR_Risk must indicate whether there is a reasonable risk.
                            """;
 
         var chatHistory = new ChatHistory(systemPrompt);
@@ -238,7 +247,31 @@ app.MapPost("/compliance", async (IFormFile file, Kernel kernel) =>
         try
         {
             var response = await chatService.GetChatMessageContentAsync(chatHistory, kernel: kernel);
-            return Results.Ok(new { complianceReport = response.Content });
+            var rawJson = response.Content?.Trim();
+            if (string.IsNullOrWhiteSpace(rawJson))
+            {
+                return Results.Problem(detail: "Compliance model returned an empty response.", title: "Compliance Check Error");
+            }
+
+            ComplianceResponseDto? complianceResponse;
+            try
+            {
+                complianceResponse = JsonSerializer.Deserialize<ComplianceResponseDto>(rawJson, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+            }
+            catch (JsonException ex)
+            {
+                return Results.Problem(detail: $"Compliance model returned invalid JSON: {ex.Message}", title: "Compliance Check Error");
+            }
+
+            if (complianceResponse is null)
+            {
+                return Results.Problem(detail: "Compliance model response could not be parsed.", title: "Compliance Check Error");
+            }
+
+            return Results.Ok(complianceResponse);
         }
         catch (Exception ex)
         {
@@ -246,8 +279,7 @@ app.MapPost("/compliance", async (IFormFile file, Kernel kernel) =>
         }
     })
     .WithName("ComplianceCheck")
-    .DisableAntiforgery()
-    .WithOpenApi();
+    .DisableAntiforgery();
 
 app.MapDefaultEndpoints();
 
@@ -259,3 +291,14 @@ public record ChatMessage(string Role, string Content);
 public record ChatRequest(List<ChatMessage> Messages);
 
 public record SimpleChatRequest(string Message);
+
+public record ComplianceFindingDto(
+    [property: JsonPropertyName("category")] string Category,
+    [property: JsonPropertyName("finding")] string Finding,
+    [property: JsonPropertyName("risk")] string Risk,
+    [property: JsonPropertyName("remediation")] string Remediation);
+
+public record ComplianceResponseDto(
+    [property: JsonPropertyName("summaryTable")] List<ComplianceFindingDto> SummaryTable,
+    [property: JsonPropertyName("PII_Risk")] bool PiiRisk,
+    [property: JsonPropertyName("GDPR_Risk")] bool GdprRisk);

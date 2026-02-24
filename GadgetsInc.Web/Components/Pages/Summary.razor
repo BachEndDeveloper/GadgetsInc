@@ -1,0 +1,78 @@
+@page "/summary"
+@using GadgetsInc.Web.Services
+@inject DocumentAnalysisApiClient DocumentAnalysisApi
+@rendermode InteractiveServer
+
+<PageTitle>GadgetsInc - Summary</PageTitle>
+
+<h1>Document Summary</h1>
+<p>Upload a document to generate a concise summary.</p>
+
+<div class="mb-3">
+    <InputFile OnChange="HandleFileSelected" />
+</div>
+
+<div class="mb-3">
+    <button class="btn btn-primary" @onclick="GenerateSummaryAsync" disabled="@(isLoading || selectedFile is null)">
+        @if (isLoading)
+        {
+            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+        }
+        Generate summary
+    </button>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
+
+@if (!string.IsNullOrWhiteSpace(summaryText))
+{
+    <h4>Summary</h4>
+    <pre class="border rounded p-3 bg-light" style="white-space: pre-wrap;">@summaryText</pre>
+}
+
+@code {
+    private const long MaxFileSizeBytes = 10 * 1024 * 1024;
+    private IBrowserFile? selectedFile;
+    private bool isLoading;
+    private string? summaryText;
+    private string? errorMessage;
+
+    private void HandleFileSelected(InputFileChangeEventArgs args)
+    {
+        selectedFile = args.File;
+        summaryText = null;
+        errorMessage = null;
+    }
+
+    private async Task GenerateSummaryAsync()
+    {
+        if (selectedFile is null || isLoading)
+        {
+            return;
+        }
+
+        isLoading = true;
+        summaryText = null;
+        errorMessage = null;
+
+        try
+        {
+            await using var stream = selectedFile.OpenReadStream(MaxFileSizeBytes);
+            summaryText = await DocumentAnalysisApi.UploadForSummaryAsync(
+                stream,
+                selectedFile.Name,
+                selectedFile.ContentType);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}
