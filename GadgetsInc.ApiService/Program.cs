@@ -153,6 +153,102 @@ app.MapPost("/chat/simple", async (SimpleChatRequest request, Kernel kernel) =>
     .WithName("SimpleChat")
     .WithOpenApi();
 
+// Summary endpoint - upload a document and get an LLM-generated summary
+app.MapPost("/summary", async (IFormFile file, Kernel kernel) =>
+    {
+        string documentText;
+        try
+        {
+            documentText = await DocumentExtractionService.ExtractTextAsync(file);
+        }
+        catch (NotSupportedException ex)
+        {
+            return Results.BadRequest(new { error = ex.Message });
+        }
+
+        if (string.IsNullOrWhiteSpace(documentText))
+            return Results.BadRequest(new { error = "The uploaded document contains no readable text." });
+
+        var chatService = kernel.GetRequiredService<IChatCompletionService>();
+
+        var systemPrompt = """
+                           You are a document summarization assistant.
+                           Your task is to produce a clear, concise summary of the document provided by the user.
+                           - Capture the main topics, key points, and any important conclusions.
+                           - Keep the summary factual and objective.
+                           - Format the summary in plain prose unless bullet points would improve clarity.
+                           """;
+
+        var chatHistory = new ChatHistory(systemPrompt);
+        chatHistory.AddUserMessage($"Please summarize the following document:\n\n{documentText}");
+
+        try
+        {
+            var response = await chatService.GetChatMessageContentAsync(chatHistory, kernel: kernel);
+            return Results.Ok(new { summary = response.Content });
+        }
+        catch (Exception ex)
+        {
+            return Results.Problem(detail: ex.Message, title: "Summary Error");
+        }
+    })
+    .WithName("SummarizeDocument")
+    .DisableAntiforgery()
+    .WithOpenApi();
+
+// Compliance endpoint - upload a document and get a PII/GDPR compliance check
+app.MapPost("/compliance", async (IFormFile file, Kernel kernel) =>
+    {
+        string documentText;
+        try
+        {
+            documentText = await DocumentExtractionService.ExtractTextAsync(file);
+        }
+        catch (NotSupportedException ex)
+        {
+            return Results.BadRequest(new { error = ex.Message });
+        }
+
+        if (string.IsNullOrWhiteSpace(documentText))
+            return Results.BadRequest(new { error = "The uploaded document contains no readable text." });
+
+        var chatService = kernel.GetRequiredService<IChatCompletionService>();
+
+        var systemPrompt = """
+                           You are a data privacy and compliance expert specializing in GDPR and PII (Personally Identifiable Information).
+                           Your task is to analyse the document provided by the user and identify any potential privacy or compliance concerns.
+
+                           Look for and report on:
+                           - PII such as names, email addresses, phone numbers, physical addresses, national ID / passport numbers, dates of birth, IP addresses, and financial data.
+                           - Sensitive special-category data (health, biometric, racial/ethnic origin, political opinions, religious beliefs, trade union membership, sexual orientation).
+                           - Potential GDPR violations, such as lack of consent indication, data retention issues, or cross-border transfer concerns.
+
+                           For each finding:
+                           1. Identify the type of data / issue.
+                           2. Quote or describe where in the document it appears.
+                           3. Explain the potential compliance risk.
+                           4. Suggest a remediation step.
+
+                           If no issues are found, clearly state that the document appears compliant.
+                           """;
+
+        var chatHistory = new ChatHistory(systemPrompt);
+        chatHistory.AddUserMessage($"Please check the following document for PII and GDPR compliance issues:\n\n{documentText}");
+
+        try
+        {
+            var response = await chatService.GetChatMessageContentAsync(chatHistory, kernel: kernel);
+            return Results.Ok(new { complianceReport = response.Content });
+        }
+        catch (Exception ex)
+        {
+            return Results.Problem(detail: ex.Message, title: "Compliance Check Error");
+        }
+    })
+    .WithName("ComplianceCheck")
+    .DisableAntiforgery()
+    .WithOpenApi();
+
 app.MapDefaultEndpoints();
 
 app.Run();
