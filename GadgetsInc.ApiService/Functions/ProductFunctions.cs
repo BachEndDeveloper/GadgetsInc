@@ -6,7 +6,7 @@ namespace GadgetsInc.ApiService.Functions;
 public class ProductFunctions
 {
     [KernelFunction, Description("Get information about GadgetsInc products. Provides details about available gadgets and their features. Available products: smartphone, laptop, smartwatch, headphones, tablet.")]
-    public static string GetProductInfo(string productName)
+    public static object GetProductInfo(string productName)
     {
         var products = new Dictionary<string, string>
         {
@@ -20,7 +20,8 @@ public class ProductFunctions
         var key = productName.ToLowerInvariant();
         if (products.TryGetValue(key, out var productInfo))
         {
-            return productInfo;
+            
+            return new {name=productName, Description=productInfo};
         }
 
         return $"Sorry, I couldn't find information about '{productName}'. Available products: {string.Join(", ", products.Keys)}";
