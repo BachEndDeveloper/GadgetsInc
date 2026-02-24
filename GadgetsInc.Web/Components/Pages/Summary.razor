@@ -68,7 +68,9 @@
         }
         catch (Exception ex)
         {
-            errorMessage = ex.Message;
+            // Do not expose internal exception details to the end user.
+            // The full exception should be logged on the server for diagnostics.
+            errorMessage = "An error occurred while generating the summary. Please try again later.";
         }
         finally
         {
