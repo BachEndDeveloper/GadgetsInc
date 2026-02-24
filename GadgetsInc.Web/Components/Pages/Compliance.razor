@@ -1,0 +1,119 @@
+@page "/compliance"
+@using GadgetsInc.Web.Services
+@inject DocumentAnalysisApiClient DocumentAnalysisApi
+@rendermode InteractiveServer
+
+<PageTitle>GadgetsInc - Compliance</PageTitle>
+
+<h1>Compliance Check</h1>
+<p>Upload a document to scan for potential PII and GDPR compliance issues.</p>
+
+<div class="mb-3">
+    <InputFile OnChange="HandleFileSelected" />
+</div>
+
+<div class="mb-3">
+    <button class="btn btn-primary" @onclick="RunComplianceCheckAsync" disabled="@(isLoading || selectedFile is null)">
+        @if (isLoading)
+        {
+            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+        }
+        Check compliance
+    </button>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
+
+@if (complianceResult is not null)
+{
+    <h4>Risk Indicators</h4>
+    <div class="mb-3">
+        <span class="badge @(complianceResult.PiiRisk ? "text-bg-danger" : "text-bg-success") me-2">
+            PII Risk: @(complianceResult.PiiRisk ? "Yes" : "No")
+        </span>
+        <span class="badge @(complianceResult.GdprRisk ? "text-bg-danger" : "text-bg-success")">
+            GDPR Risk: @(complianceResult.GdprRisk ? "Yes" : "No")
+        </span>
+    </div>
+
+    <h4>Potential Risks Summary</h4>
+    @if (complianceResult.SummaryTable.Count == 0)
+    {
+        <div class="alert alert-success">No potential PII/GDPR issues were identified.</div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-striped table-bordered">
+                <thead>
+                    <tr>
+                        <th>Category</th>
+                        <th>Finding</th>
+                        <th>Risk</th>
+                        <th>Remediation</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in complianceResult.SummaryTable)
+                    {
+                        <tr>
+                            <td>@item.Category</td>
+                            <td>@item.Finding</td>
+                            <td>@item.Risk</td>
+                            <td>@item.Remediation</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+}
+
+@code {
+    private const long MaxFileSizeBytes = 10 * 1024 * 1024;
+    private IBrowserFile? selectedFile;
+    private bool isLoading;
+    private ComplianceResponseDto? complianceResult;
+    private string? errorMessage;
+
+    private void HandleFileSelected(InputFileChangeEventArgs args)
+    {
+        selectedFile = args.File;
+        complianceResult = null;
+        errorMessage = null;
+    }
+
+    private async Task RunComplianceCheckAsync()
+    {
+        if (selectedFile is null || isLoading)
+        {
+            return;
+        }
+
+        isLoading = true;
+        complianceResult = null;
+        errorMessage = null;
+
+        try
+        {
+            await using var stream = selectedFile.OpenReadStream(MaxFileSizeBytes);
+            complianceResult = await DocumentAnalysisApi.UploadForComplianceAsync(
+                stream,
+                selectedFile.Name,
+                selectedFile.ContentType);
+        }
+        catch (Exception ex)
+        {
+            // Avoid exposing internal exception details to the end user.
+            // Full exception information should be logged on the server side.
+            errorMessage = "We couldn't complete the compliance check. Please try again later.";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

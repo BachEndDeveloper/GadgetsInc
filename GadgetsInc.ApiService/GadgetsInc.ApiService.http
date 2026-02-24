@@ -4,3 +4,29 @@ GET {{ApiService_HostAddress}}/weatherforecast/
 Accept: application/json
 
 ###
+
+### Summarize a document
+POST {{ApiService_HostAddress}}/summary
+Content-Type: multipart/form-data; boundary=boundary
+
+--boundary
+Content-Disposition: form-data; name="file"; filename="sample.txt"
+Content-Type: text/plain
+
+This is a sample document about GadgetsInc products and services.
+--boundary--
+
+###
+
+### Check a document for PII/GDPR compliance
+POST {{ApiService_HostAddress}}/compliance
+Content-Type: multipart/form-data; boundary=boundary
+
+--boundary
+Content-Disposition: form-data; name="file"; filename="sample.txt"
+Content-Type: text/plain
+
+Customer: John Doe, email: john.doe@example.com, phone: +44 7911 123456
+--boundary--
+
+###
