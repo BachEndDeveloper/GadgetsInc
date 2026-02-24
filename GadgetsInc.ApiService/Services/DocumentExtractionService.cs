@@ -28,7 +28,7 @@ public static class DocumentExtractionService
         await stream.CopyToAsync(memoryStream);
         memoryStream.Position = 0;
 
-        using var document = PdfDocument.Open(memoryStream.ToArray());
+        using var document = PdfDocument.Open(memoryStream);
         var sb = new StringBuilder();
 
         foreach (var page in document.GetPages())
