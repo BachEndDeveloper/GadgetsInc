@@ -205,6 +205,12 @@ app.MapPost("/summary", async (IFormFile file, Kernel kernel) =>
 // Compliance endpoint - upload a document and get a PII/GDPR compliance check
 app.MapPost("/compliance", async (IFormFile file, Kernel kernel) =>
     {
+        if (file == null || file.Length == 0)
+            return Results.BadRequest(new { error = "No file was uploaded." });
+
+        if (file.Length > MaxSummaryUploadSizeBytes)
+            return Results.BadRequest(new { error = "The uploaded file is too large. The maximum allowed size is 10 MB." });
+
         string documentText;
         try
         {

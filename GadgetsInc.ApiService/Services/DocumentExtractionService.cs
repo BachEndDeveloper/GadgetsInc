@@ -41,21 +41,30 @@ public static class DocumentExtractionService
 
     private static async Task<string> ExtractFromDocxAsync(Stream stream)
     {
-        using var memoryStream = new MemoryStream();
-        await stream.CopyToAsync(memoryStream);
-        memoryStream.Position = 0;
+        // Open directly from a seekable stream to avoid double-buffering.
+        // Fall back to a MemoryStream copy only when the stream is not seekable.
+        Stream docxStream;
+        MemoryStream? owned = null;
+        if (stream.CanSeek)
+        {
+            docxStream = stream;
+        }
+        else
+        {
+            owned = new MemoryStream();
+            await stream.CopyToAsync(owned);
+            owned.Position = 0;
+            docxStream = owned;
+        }
 
-        using var wordDoc = WordprocessingDocument.Open(memoryStream, false);
-        var body = wordDoc.MainDocumentPart?.Document?.Body;
-        if (body is null)
-            return string.Empty;
-
+        using var wordDoc = WordprocessingDocument.Open(docxStream, false);
         var sb = new StringBuilder();
-        foreach (var paragraph in body.Descendants<Paragraph>())
+        foreach (var paragraph in wordDoc.MainDocumentPart?.Document?.Body?.Descendants<Paragraph>() ?? [])
         {
             sb.AppendLine(paragraph.InnerText);
         }
 
+        owned?.Dispose();
         return sb.ToString();
     }
 
