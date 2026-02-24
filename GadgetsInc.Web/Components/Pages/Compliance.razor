@@ -107,7 +107,9 @@
         }
         catch (Exception ex)
         {
-            errorMessage = ex.Message;
+            // Avoid exposing internal exception details to the end user.
+            // Full exception information should be logged on the server side.
+            errorMessage = "We couldn't complete the compliance check. Please try again later.";
         }
         finally
         {
